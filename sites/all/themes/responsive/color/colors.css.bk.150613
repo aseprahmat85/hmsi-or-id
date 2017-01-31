@@ -1,0 +1,48 @@
+body {
+  background-image: url("../images/bg_body.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+a {
+  color: #1c6ea0;
+}
+
+a:hover {
+  color: #00ff0c;
+}
+
+#headright {
+  -webkit-border-radius: 0px 0px 8px 8px;
+  -moz-border-radius: 0px 0px 8px 8px;
+  width: 1280px;
+  float: right;
+}
+
+#main-menu li li a,
+#main-menu li li a:link,
+#main-menu li li a:visited {
+  background-color: #152d43;
+}
+
+#main-menu li li a:hover,
+#main-menu li li a:active {
+  background: #01152a;
+}
+
+.sidebar .block > h2 {
+  background: forestgreen;
+}
+
+#bottom {
+  background: #4e4554;
+}
+
+.form-submit{
+  background-color: #D8FFD8;
+}
+
+.form-submit:hover{
+  background: #79FF79;
+}

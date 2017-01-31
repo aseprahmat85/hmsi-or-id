@@ -1,0 +1,292 @@
+<?php
+
+/**
+ * implement hook permission
+ */
+function hmsi_home_permission() {
+    return array(
+        'access hmsi home' => array(
+            'title' => t('access hmsi home'),
+        ),
+        'access hmsi article' => array(
+            'title' => t('access hmsi article'),
+        ),
+    );
+}
+
+/**
+ * implement hook menu
+ */
+function hmsi_home_menu() {
+    $items['home'] = array(
+        'page callback' => 'home_page',
+        'access arguments' => array('access hmsi home'),
+        'type' => MENU_CALLBACK,
+    );
+    $items['artikel-list'] = array(
+        'page callback' => 'article_list',
+        'access arguments' => array('access hmsi article'),
+        'file'  =>      'content.inc',
+        'type' => MENU_CALLBACK,
+    );
+    $items['galeri-list'] = array(
+        'page callback' => 'galeri_list',
+        'access arguments' => array('access hmsi article'),
+        'file'  =>      'content.inc',
+        'type' => MENU_CALLBACK,
+    );
+    
+    $items['hmsi/tentang-kami'] = array(
+        'page callback' => 'tentang_kami',
+        'access arguments' => array('access hmsi home'),
+        'file'  =>      'content.inc',
+        'type' => MENU_CALLBACK,
+    );
+    
+    $items['hmsi/hubungi-kami'] = array(
+        'page callback' => 'hubungi_kami',
+        'access arguments' => array('access hmsi home'),
+        'file'  =>      'content.inc',
+        'type' => MENU_CALLBACK,
+    );
+    
+    $items['artikel/%'] = array(
+        'page callback' => 'article_page',
+        'page arguments' => array(1),
+        'access arguments' => array('access hmsi article'),
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}
+
+/**
+ * implement hook theme
+ */
+function hmsi_home_theme() {
+    return array(
+        'hmsi_home_page' => array(
+            'template' => 'hmsi_home_page',
+            'variables' => array('data' => array()),
+        ),
+        'hmsi_article_page' => array(
+            'template' => 'hmsi_article_page',
+            'variables' => array('data' => array()),
+        ),
+        'hmsi_tentangkami_page' => array(
+            'template' => 'hmsi_tentangkami_page',
+            'variables' => array('data' => array()),
+        ),
+        'hmsi_hubungikami_page' => array(
+            'template' => 'hmsi_hubungikami_page',
+            'variables' => array('data' => array()),
+        ),
+    );
+}
+
+/**
+ * built a home page
+ */
+function home_page(){
+    // get an articles
+    $nids = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->fields('n', array('type'))
+    ->condition('n.type', 'article')
+    ->condition('n.status', 1)
+    ->orderBy('n.changed', 'desc')
+    ->range(0, 6)
+    ->execute()
+    ->fetchCol(); // returns an indexed array
+    $articles = node_load_multiple($nids);
+    
+    // get an image_galery + youtube
+    $nids = db_select('node', 'n')
+    ->fields('n', array('nid'))
+    ->fields('n', array('type'))
+    ->condition('n.type', array('image_galery', 'youtube_galery') , 'IN')
+    ->condition('n.status', 1)
+    ->orderBy('n.changed', 'desc')
+    ->range(0, 6)
+    ->execute()
+    ->fetchCol(); // returns an indexed array
+    $image_galeries = node_load_multiple($nids);
+//    echo "<pre>"
+//    . print_r($image_galeries, true)
+//            . "</pre>";
+//    die;
+    return theme("hmsi_home_page", array("data" => array("articles" => $articles, "image_galeries" => $image_galeries)));
+}
+
+function article_page($nid){
+    if(!empty($nid)){
+        // get prev article
+        $prev_articles = db_select('node', 'n')
+        ->fields('n', array('nid', 'title'))
+        ->fields('n', array('type'))
+        ->condition('n.type', 'article')
+        ->condition('n.status', 1)
+        ->condition('n.nid', $nid, "<")
+        ->orderBy("n.nid", "desc")
+        ->range(0, 1)
+        ->execute()
+        ->fetchAssoc(); // returns an array
+//        echo '<pre>'.print_r($prev_nid, true).'</pre>';return 0;
+        $prev_article = new stdClass();
+        if(isset($prev_articles['nid'])){
+            $prev_article = node_load($prev_articles['nid']);
+        }
+        // get prev article
+        $next_articles = db_select('node', 'n')
+        ->fields('n', array('nid', 'title'))
+        ->fields('n', array('type'))
+        ->condition('n.type', 'article')
+        ->condition('n.status', 1)
+        ->condition('n.nid', $nid, ">")
+        ->orderBy("n.nid", "asc")
+        ->range(0, 1)
+        ->execute()
+        ->fetchAssoc(); // returns an indexed array
+        $next_article = new stdClass();
+        if(isset($next_articles['nid'])){
+            $next_article = node_load($next_articles['nid']);
+        }
+        $article = node_load($nid);
+        
+        // meta tag
+        global $base_url;
+        $meta_opengraph['og:url'] = array(
+            '#type' => 'html_tag',
+            '#tag' => 'meta',
+            '#attributes' => array(
+                'property' => 'og:url',
+                'content' => $base_url.'/artikel/'.$article->nid,
+            )
+        );
+        $meta_opengraph['og:type'] = array(
+            '#type' => 'html_tag',
+            '#tag' => 'meta',
+            '#attributes' => array(
+                'property' => 'og:type',
+                'content' => 'website',
+            )
+        );
+        $meta_opengraph['og:title'] = array(
+            '#type' => 'html_tag',
+            '#tag' => 'meta',
+            '#attributes' => array(
+                'property' => 'og:title',
+                'content' => $article->title,
+            )
+        );
+//        $meta_opengraph['og:description'] = array(
+//            '#type' => 'html_tag',
+//            '#tag' => 'meta',
+//            '#attributes' => array(
+//                'property' => 'og:description',
+//                'content' => $article->title,
+//            )
+//        );
+        $meta_opengraph['og:image'] = array(
+            '#type' => 'html_tag',
+            '#tag' => 'meta',
+            '#attributes' => array(
+                'property' => 'og:image',
+                'content' => image_style_url("seratus", $article->field_image['und'][0]['uri']),
+            )
+        );
+        $weight_meta=1;
+        foreach ($meta_opengraph as $key_meta_tags => $value_meta_tags) {
+            $value_meta_tags['#weight']=$weight_meta;
+            drupal_add_html_head($value_meta_tags, $key_meta_tags);
+            $weight_meta=$weight_meta+1;
+        }
+        Return theme("hmsi_article_page", array("data" => array("article" => $article, "prev_article" => $prev_article, "next_article" => $next_article)));
+    }else{
+        return drupal_not_found();
+    }
+}
+
+function hmsi_home_comment_form($form, &$form_state){
+    global $user; 
+    $form = array();
+    $form['input_name'] = array(
+        '#type'     => 'item',
+        '#title'    => 'Nama',
+        '#markup'   => "<b> ".$user->name."</b>"
+    );
+    $form['input_uid'] = array(
+        '#type'     => 'hidden',
+        '#name'     => 'uid',
+        '#value'    => $user->uid
+    );
+    $form['input_subject'] = array(
+        '#type'     => 'textfield',
+        '#name'     => 'input_subject',
+        '#title'    => 'Judul',
+        '#required' => false
+    );
+    $form['input_comment'] = array(
+        '#type'     => 'textarea',
+        '#name'     => 'input_comment',
+        '#title'    => 'Komentar',
+        '#required' => true
+    );
+    $form['input_submit'] = array(
+        '#type'     => 'submit',
+        '#name'     => 'op',
+//        '#title'    => 'Kirim',
+        '#value'    => 'Kirim'
+    );
+//    $form['redirect'] => ''
+    
+    return $form;
+}
+
+function hmsi_home_comment_form_validate($form, &$form_state){
+    if(!empty($form_state['values']['input_comment']) && !empty($form_state['values']['input_uid'])){
+        $form_state['redirect'] = $form_state['build_info']['args'][0]['redirect'];
+        $form_state['values']['nid'] = $form_state['build_info']['args'][0]['nid'];
+    }
+//    else{
+//        drupal_set_message('komentar harus diisi', 'error');
+//        return 0;
+//    }
+//    echo "<pre>".print_r($form_state, true)."</pre>";exit;
+}
+function hmsi_home_comment_form_submit($form, &$form_state){
+    global $user;
+    $comment = (object) array(
+    'nid' => $form_state['values']['nid'],
+    'cid' => 0,
+    'pid' => 0,
+    'uid' => $user->uid,
+    'mail' => $user->mail,
+    'name' => $user->name,
+    'is_anonymous' => 0,
+    'homepage' => '',
+    'status' => COMMENT_PUBLISHED,
+    'subject' => $form_state['values']['input_subject'],
+    'language' => LANGUAGE_NONE,
+    'comment_body' => array(
+      LANGUAGE_NONE => array(
+        0 => array (
+          'value' => $form_state['values']['input_comment'],
+          'format' => 'plain_text'
+        )
+      )
+    ),
+  );
+
+  comment_submit($comment);
+  comment_save($comment);
+  
+  drupal_set_message("Komentar berhasil ditambahkan. Terima kasih.");
+}
+
+function trim_text($text, $length = 30, $add_char = '...'){
+    $strlength = strlen($text);
+    if($strlength > $length){
+        $text = substr($text, 0, ($length - strlen($add_char))).$add_char;
+    }
+    return $text;
+}

@@ -1,0 +1,6 @@
+; $Id$
+name = HMSI Home
+description = This module to handle home page
+package = HMSI
+core = 7.x
+version = 1.0
